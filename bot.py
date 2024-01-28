@@ -6,6 +6,8 @@ from config_data.config import Config, load_config
 
 from handlers import user_handlers
 
+from config_data.menu import set_main_menu
+
 
 # Функция конфигурирования и запуска бота
 async def main() -> None:
@@ -18,6 +20,9 @@ async def main() -> None:
     dp = Dispatcher()
 
     dp.include_router(user_handlers.router)
+
+    #настройка меню
+    await set_main_menu(bot)
 
     # Пропускаем накопившиеся апдейты и запускаем polling
     await bot.delete_webhook(drop_pending_updates=True)
