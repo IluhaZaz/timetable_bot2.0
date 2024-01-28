@@ -1,1 +1,1 @@
-from . import lexicon_ru
+from .lexicon_ru import *
