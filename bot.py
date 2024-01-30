@@ -1,6 +1,9 @@
 import asyncio
 
+import pandas as pd
+
 from aiogram import Bot, Dispatcher
+from aiogram.fsm.storage.memory import MemoryStorage
 from config_data.config import Config, load_config
 
 
@@ -17,7 +20,10 @@ async def main() -> None:
 
     # Инициализируем бот и диспетчер
     bot = Bot(token=config.tg_bot.token)
-    dp = Dispatcher()
+
+    storage = MemoryStorage()
+
+    dp = Dispatcher(storage=storage)
 
     dp.include_router(user_handlers.router)
 
