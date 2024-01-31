@@ -8,6 +8,7 @@ from aiogram.fsm.context import FSMContext
 
 from lexicon.lexicon_ru import LEXICON_RU
 from utils.parse import parse_data
+from filters.user_filters import group_filter, faculty_filter
 
 class FSMdata(StatesGroup):
     fill_faculty = State()
@@ -19,10 +20,24 @@ database = pd.read_csv("database.csv", names=["faculty", "group"], index_col=0)
 router = Router()
 
 @router.message(Command(commands='start'))
-async def process_start_help_command(message: Message, state: FSMContext):
+async def process_start_command(message: Message, state: FSMContext):
     await message.reply(LEXICON_RU["/start"])
     await message.reply(LEXICON_RU["/set_faculty"])
     await state.set_state(FSMdata.fill_faculty)
+
+@router.message(Command(commands="help"), StateFilter(default_state))
+async def process_help_command(message: Message, state: FSMContext):
+    await message.reply(LEXICON_RU["/help"])
+
+@router.message(Command(commands='cancel'), ~StateFilter(default_state))
+async def process_cancel_command(message: Message, state: FSMContext):
+    await message.reply(LEXICON_RU["/cancel"])
+    await state.clear()
+
+@router.message(Command(commands='cancel'), StateFilter(default_state))
+async def process_cancel_command(message: Message, state: FSMContext):
+    await message.reply(LEXICON_RU["no_cancel"])
+    await state.clear()
 
 @router.message(Command(commands='today'), StateFilter(default_state))
 async def process_timetable_command(message: Message):
@@ -32,34 +47,51 @@ async def process_timetable_command(message: Message):
         is_void = lambda x: x if x else "Сегодня нет пар!"
         await message.reply(is_void(subj_lst))
     else:
-        await message.reply("Сначала заполните данные!")
+        await message.reply(LEXICON_RU["fill_data_first"])
 
 @router.message(Command(commands='set_faculty'), StateFilter(default_state))
 async def process_faculty_command(message: Message, state: FSMContext):
     await state.set_state(FSMdata.fill_faculty)
     await message.reply(LEXICON_RU["/set_faculty"])
 
-@router.message(StateFilter(FSMdata.fill_faculty))
-async def process_faculty_command(message: Message, state: FSMContext):
+@router.message(StateFilter(FSMdata.fill_faculty), faculty_filter)
+async def fill_faculty(message: Message, state: FSMContext):
     await state.set_state(FSMdata.fill_group)
     await state.update_data(faculty=message.text)
     await message.reply(LEXICON_RU["/set_group"])
+
+@router.message(StateFilter(FSMdata.fill_faculty))
+async def fill_faculty(message: Message, state: FSMContext):
+    await message.reply(LEXICON_RU["no_faculty"])
     
 
-@router.message(StateFilter(FSMdata.fill_group))
-async def process_group_command(message: Message, state: FSMContext):
+@router.message(StateFilter(FSMdata.fill_group), group_filter)
+async def fill_group(message: Message, state: FSMContext):
     await state.update_data(group=message.text)
     data = await state.get_data()
-    database.loc[message.from_user.id] = [data["faculty"], data["group"]]
+    user_id = message.from_user.id
+    if not data.get("faculty"):
+        database.at[user_id, "group"] = data["group"]
+    else:
+        database.loc[message.from_user.id] = [data["faculty"], data["group"]]
     database.to_csv("database.csv", index=True, header=False)
     await state.clear()
-    await message.reply("Данные заполнены")
+    await message.reply(LEXICON_RU["data_filled"])
+
+@router.message(StateFilter(FSMdata.fill_group))
+async def fill_group(message: Message, state: FSMContext):
+    await message.reply(LEXICON_RU["no_group"])
+
 
 @router.message(Command(commands='set_group'), StateFilter(default_state))
 async def process_group_command(message: Message, state: FSMContext):
     await message.reply(LEXICON_RU["/set_group"])
     await state.set_state(FSMdata.fill_group)
 
-@router.message()
+@router.message(StateFilter(default_state))
 async def process_no_command(message: Message):
     await message.reply(LEXICON_RU["no_command"])
+
+@router.message(~StateFilter(default_state))
+async def process_no_command(message: Message):
+    await message.reply(LEXICON_RU["no_default_state"])
