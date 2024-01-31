@@ -1,7 +1,5 @@
 import asyncio
 
-import pandas as pd
-
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from config_data.config import Config, load_config

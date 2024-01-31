@@ -1,7 +1,7 @@
 import pandas as pd
 
 from aiogram import Router
-from aiogram.types import Message
+from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.state import default_state, State, StatesGroup
 from aiogram.fsm.context import FSMContext
@@ -9,6 +9,7 @@ from aiogram.fsm.context import FSMContext
 from lexicon.lexicon_ru import LEXICON_RU
 from utils.parse import parse_data
 from filters.user_filters import group_filter, faculty_filter
+from keybords.faculty_keyboard import faculty_reply_markup
 
 class FSMdata(StatesGroup):
     fill_faculty = State()
@@ -22,7 +23,7 @@ router = Router()
 @router.message(Command(commands='start'))
 async def process_start_command(message: Message, state: FSMContext):
     await message.reply(LEXICON_RU["/start"])
-    await message.reply(LEXICON_RU["/set_faculty"])
+    await message.reply(LEXICON_RU["/set_faculty"], reply_markup=faculty_reply_markup)
     await state.set_state(FSMdata.fill_faculty)
 
 @router.message(Command(commands="help"), StateFilter(default_state))
@@ -52,13 +53,13 @@ async def process_timetable_command(message: Message):
 @router.message(Command(commands='set_faculty'), StateFilter(default_state))
 async def process_faculty_command(message: Message, state: FSMContext):
     await state.set_state(FSMdata.fill_faculty)
-    await message.reply(LEXICON_RU["/set_faculty"])
+    await message.reply(LEXICON_RU["/set_faculty"], reply_markup=faculty_reply_markup)
 
 @router.message(StateFilter(FSMdata.fill_faculty), faculty_filter)
 async def fill_faculty(message: Message, state: FSMContext):
     await state.set_state(FSMdata.fill_group)
     await state.update_data(faculty=message.text)
-    await message.reply(LEXICON_RU["/set_group"])
+    await message.reply(LEXICON_RU["/set_group"], reply_markup=ReplyKeyboardRemove())
 
 @router.message(StateFilter(FSMdata.fill_faculty))
 async def fill_faculty(message: Message, state: FSMContext):
