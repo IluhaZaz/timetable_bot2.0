@@ -46,7 +46,7 @@ async def process_timetable_command(message: Message):
     if user_id in database.index:
         subj_lst = parse_data(database.at[user_id, "faculty"], database.at[user_id, "group"])
         is_void = lambda x: x if x else "Сегодня нет пар!"
-        await message.reply(is_void(subj_lst))
+        await message.reply(is_void(subj_lst), parse_mode="HTML")
     else:
         await message.reply(LEXICON_RU["fill_data_first"])
 

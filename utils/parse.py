@@ -1,11 +1,17 @@
 import datetime
+import asyncio
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.edge.options import Options
+
+from lexicon import LEXICON_RU
 
 
 def parse_data(faculty: str, group_num: str) -> list:
-    driver = webdriver.Edge()
+    options = Options()
+    options.headless = True
+    driver = webdriver.Edge(options=options)
     driver.get("https://ssau.ru/rasp")
 
     #open faculty page
@@ -13,7 +19,7 @@ def parse_data(faculty: str, group_num: str) -> list:
     try:
         faculty_link = driver.find_element(By.LINK_TEXT, faculty).get_attribute("href")
     except:
-        return "No such faculty"
+        return LEXICON_RU["no_faculty"]
     
     driver.get(faculty_link)
 
@@ -30,7 +36,7 @@ def parse_data(faculty: str, group_num: str) -> list:
     try:
         group_link = driver.find_element(By.LINK_TEXT, group_num).get_attribute("href")
     except:
-        return "No such group"
+        return LEXICON_RU["no_group"]
 
     driver.get(group_link)
 
@@ -38,17 +44,23 @@ def parse_data(faculty: str, group_num: str) -> list:
 
     curr_day = datetime.datetime.today().weekday() + 1
 
-    if curr_day == 0:
-        return "it's weekend"
+    """if curr_day == 0:
+        return "it's weekend"""
     
     today_subjects = subjects[curr_day::6]
 
-    today_subjects = [x for x in today_subjects if x != ""]
+    res = ""
+    with open("C:\\Users\\Acer\\Documents\\new_timetable_bot\\utils\\pairs_time.txt", encoding="utf-8") as f:
+        for subj in today_subjects:
+            if not subj:
+                continue
+            time = f.readline()
+            res += "<b>" + time + "</b>" + subj + "\n\n"
+
 
     driver.close()
     driver.quit()
-
-    return '\n'.join(today_subjects)
+    return res
 
 if __name__ == "__main__":
     print(parse_data("Институт информатики и кибернетики", "6312-100503D"))
